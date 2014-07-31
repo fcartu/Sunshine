@@ -51,7 +51,8 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
             WeatherEntry.COLUMN_SHORT_DESC,
             WeatherEntry.COLUMN_MAX_TEMP,
             WeatherEntry.COLUMN_MIN_TEMP,
-            LocationEntry.COLUMN_LOCATION_SETTING
+            LocationEntry.COLUMN_LOCATION_SETTING,
+            WeatherEntry.COLUMN_WEATHER_ID
     };
 
     // These indices are tied to FORECAST_COLUMNS.  If FORECAST_COLUMNS changes, these
@@ -62,12 +63,18 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     public static final int COL_WEATHER_MAX_TEMP = 3;
     public static final int COL_WEATHER_MIN_TEMP = 4;
     public static final int COL_LOCATION_SETTING = 5;
+    public static final int COL_WEATHER_CONDITION_ID = 6;
 
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-        getLoaderManager().initLoader(FORECAST_LOADER, null, this);
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface Callback {
+        /**
+         * DetailFragmentCallback for when an item has been selected.
+         */
+        public void onItemSelected(String date);
     }
 
     public ForecastFragment() {
@@ -81,49 +88,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-
-        forecastAdapter = new ForecastAdapter(getActivity(), null, 0);
-
-        mListForecast = (ListView) rootView.findViewById(R.id.list_forecast);
-        mListForecast.setAdapter(forecastAdapter);
-        mListForecast.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-                ForecastAdapter adapter = (ForecastAdapter)
-                        adapterView.getAdapter();
-                Cursor cursor = adapter.getCursor();
-
-                if (cursor != null && cursor.moveToPosition(position)) {
-                    Intent detailIntent = new Intent(getActivity(), DetailActivity.class)
-                            .putExtra(DetailActivity.DATE_KEY, cursor.getString(COL_WEATHER_DATE));
-                    startActivity(detailIntent);
-                }
-            }
-        });
-
-        return rootView;
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (mLocation != null && !mLocation.equals(Utility.getPreferredLocation(getActivity()))) {
-            getLoaderManager().restartLoader(FORECAST_LOADER, null, this);
-        }
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-    }
-
-    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-
         inflater.inflate(R.menu.forecastfragment, menu);
     }
 
@@ -139,17 +104,54 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+
+        forecastAdapter = new ForecastAdapter(getActivity(), null, 0);
+
+        mListForecast = (ListView) rootView.findViewById(R.id.list_forecast);
+        mListForecast.setAdapter(forecastAdapter);
+        mListForecast.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                Cursor cursor = forecastAdapter.getCursor();
+
+                if (cursor != null && cursor.moveToPosition(position)) {
+                    Intent intent = new Intent(getActivity(), DetailActivity.class)
+                            .putExtra(DetailActivity.DATE_KEY, cursor.getString(COL_WEATHER_DATE));
+                    startActivity(intent);
+                }
+            }
+        });
+
+        return rootView;
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        getLoaderManager().initLoader(FORECAST_LOADER, null, this);
+        super.onActivityCreated(savedInstanceState);
+    }
+
     private void updateWeather() {
         FetchWeatherTask weatherTask = new FetchWeatherTask(getActivity());
-        String location = PreferenceManager.getDefaultSharedPreferences(getActivity())
-                .getString(getString(R.string.pref_location_key),
-                        getString(R.string.pref_location_default));
+        String location = Utility.getPreferredLocation(getActivity());
 
         String units = PreferenceManager.getDefaultSharedPreferences(getActivity())
                 .getString(getString(R.string.pref_units_key),
                         getString(R.string.pref_units_key));
 
         weatherTask.execute(location, units);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (mLocation != null && !mLocation.equals(Utility.getPreferredLocation(getActivity()))) {
+            getLoaderManager().restartLoader(FORECAST_LOADER, null, this);
+        }
     }
 
     @Override
@@ -184,11 +186,6 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor data) {
         forecastAdapter.swapCursor(data);
-
-        if ( mLocation != null && !mLocation.equals(
-                Utility.getPreferredLocation(getActivity())) ) {
-            getLoaderManager().restartLoader(FORECAST_LOADER, null, this);
-        }
     }
 
     @Override
