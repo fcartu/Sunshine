@@ -53,7 +53,6 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
                 new String[]{LocationEntry._ID},
                 LocationEntry.COLUMN_LOCATION_SETTING + " = ?",
                 new String[]{locationSetting},
-                null,
                 null);
 
         if (cursor.moveToFirst()) {
