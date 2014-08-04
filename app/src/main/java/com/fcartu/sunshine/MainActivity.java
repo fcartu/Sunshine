@@ -1,12 +1,12 @@
 package com.fcartu.sunshine;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import com.fcartu.sunshine.sync.SunshineSyncAdapter;
 
 public class MainActivity extends ActionBarActivity implements ForecastFragment.Callback {
 
@@ -37,6 +37,11 @@ public class MainActivity extends ActionBarActivity implements ForecastFragment.
         ForecastFragment forecastFragment = ((ForecastFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.fragment_forecast));
         forecastFragment.setUseTodayLayout(!mTwoPane);
+
+        // The OpenWeather API update the data every 3 hours.
+        // Since we are automate the data loading, a periodic sync is scheduled and every 3 hours
+        // the data is retrieved.
+        SunshineSyncAdapter.initializeSyncAdapter(this);
     }
 
     @Override
@@ -56,26 +61,9 @@ public class MainActivity extends ActionBarActivity implements ForecastFragment.
             Intent intent = new Intent(this, SettingsActivity.class);
             startActivity(intent);
             return true;
-        } else if (id == R.id.action_map) {
-            showMapLocation();
-            return true;
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    private void showMapLocation() {
-        String location = PreferenceManager.getDefaultSharedPreferences(this)
-                .getString(getString(R.string.pref_location_key),
-                        getString(R.string.pref_location_default));
-        Uri uri = Uri.parse("geo:0,0?q=zipcode " + location);
-
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(uri);
-
-        if (intent.resolveActivity(getPackageManager()) != null) {
-            startActivity(intent);
-        }
     }
 
     @Override

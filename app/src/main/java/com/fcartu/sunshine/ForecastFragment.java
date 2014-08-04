@@ -1,9 +1,9 @@
 package com.fcartu.sunshine;
 
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -21,6 +21,7 @@ import android.widget.ListView;
 import com.fcartu.sunshine.data.WeatherContract;
 import com.fcartu.sunshine.data.WeatherContract.LocationEntry;
 import com.fcartu.sunshine.data.WeatherContract.WeatherEntry;
+import com.fcartu.sunshine.sync.SunshineSyncAdapter;
 
 import java.util.Date;
 
@@ -57,18 +58,23 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
             WeatherEntry.COLUMN_MAX_TEMP,
             WeatherEntry.COLUMN_MIN_TEMP,
             LocationEntry.COLUMN_LOCATION_SETTING,
-            WeatherEntry.COLUMN_WEATHER_ID
+            WeatherEntry.COLUMN_WEATHER_ID,
+            LocationEntry.COLUMN_COORD_LAT,
+            LocationEntry.COLUMN_COORD_LONG
+
     };
 
     // These indices are tied to FORECAST_COLUMNS.  If FORECAST_COLUMNS changes, these
     // must change.
-    public static final int COL_WEATHER_ID = 0;
     public static final int COL_WEATHER_DATE = 1;
     public static final int COL_WEATHER_DESC = 2;
     public static final int COL_WEATHER_MAX_TEMP = 3;
     public static final int COL_WEATHER_MIN_TEMP = 4;
     public static final int COL_LOCATION_SETTING = 5;
-    public static final int COL_WEATHER_CONDITION_ID = 6;
+    public static final int COL_WEATHER_ID = 6;
+    public static final int COL_COORD_LAT = 7;
+    public static final int COL_COORD_LONG= 8;
+
 
     /**
      * A callback interface that all activities containing this fragment must
@@ -101,8 +107,11 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     public boolean onOptionsItemSelected(MenuItem item) {
 
         int id = item.getItemId();
-        if (id == R.id.action_refresh) {
+        /*if (id == R.id.action_refresh) {
             updateWeather();
+            return true;
+        } else */ if (id == R.id.action_map) {
+            showMapLocation();
             return true;
         }
 
@@ -146,6 +155,25 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         return rootView;
     }
 
+    private void showMapLocation() {
+        if (forecastAdapter != null) {
+            Cursor c = forecastAdapter.getCursor();
+            if (c != null) {
+                c.moveToPosition(0);
+                String posLat = c.getString(COL_COORD_LAT);
+                String posLong = c.getString(COL_COORD_LONG);
+                Uri geolocation = Uri.parse("geo:" + posLat + "," + posLong);
+
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(geolocation);
+
+                if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+                    startActivity(intent);
+                }
+            }
+        }
+    }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         getLoaderManager().initLoader(FORECAST_LOADER, null, this);
@@ -153,14 +181,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     }
 
     private void updateWeather() {
-        FetchWeatherTask weatherTask = new FetchWeatherTask(getActivity());
-        String location = Utility.getPreferredLocation(getActivity());
-
-        String units = PreferenceManager.getDefaultSharedPreferences(getActivity())
-                .getString(getString(R.string.pref_units_key),
-                        getString(R.string.pref_units_key));
-
-        weatherTask.execute(location, units);
+        SunshineSyncAdapter.syncImmediately(getActivity());
     }
 
     @Override
