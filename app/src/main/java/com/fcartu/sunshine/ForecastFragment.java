@@ -71,7 +71,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     public static final int COL_WEATHER_MAX_TEMP = 3;
     public static final int COL_WEATHER_MIN_TEMP = 4;
     public static final int COL_LOCATION_SETTING = 5;
-    public static final int COL_WEATHER_ID = 6;
+    public static final int COL_WEATHER_CONDITION_ID = 6;
     public static final int COL_COORD_LAT = 7;
     public static final int COL_COORD_LONG= 8;
 
@@ -107,7 +107,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     public boolean onOptionsItemSelected(MenuItem item) {
 
         int id = item.getItemId();
-        /*if (id == R.id.action_refresh) {
+        /*  if (id == R.id.action_refresh) {
             updateWeather();
             return true;
         } else */ if (id == R.id.action_map) {
